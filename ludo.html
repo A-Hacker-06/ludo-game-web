@@ -1,0 +1,1042 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multiplayer Ludo Game</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', sans-serif;
+        }
+
+        body {
+            background-color: #f5f7fa;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 1000px;
+            display: grid;
+            grid-template-areas: 
+                "header"
+                "connection"
+                "game-info"
+                "board"
+                "chat";
+            gap: 20px;
+        }
+
+        .header {
+            grid-area: header;
+            text-align: center;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eaeaea;
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+        }
+
+        .connection-panel {
+            grid-area: connection;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .connection-panel h3 {
+            margin-bottom: 12px;
+            color: #2c3e50;
+            font-size: 1.1rem;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin: 10px 0;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        input, button {
+            padding: 10px 14px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: all 0.2s ease;
+        }
+
+        input {
+            flex: 1;
+            min-width: 150px;
+            background: white;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 2px rgba(52,152,219,0.2);
+        }
+
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+            min-width: 100px;
+        }
+
+        button:hover:not(:disabled) {
+            background: #2980b9;
+        }
+
+        button:disabled {
+            background: #95a5a6;
+            cursor: not-allowed;
+        }
+
+        .game-info {
+            grid-area: game-info;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .player-info, .dice-container {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .player {
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid #eee;
+        }
+
+        .player.active {
+            background-color: #e8f4fc;
+            border-color: #3498db;
+        }
+
+        .player.red { background-color: #ffebee; }
+        .player.blue { background-color: #e3f2fd; }
+        .player.yellow { background-color: #fff8e1; }
+        .player.green { background-color: #e8f5e9; }
+
+        .dice-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .dice {
+            width: 60px;
+            height: 60px;
+            border: 2px solid #333;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+            background: white;
+            cursor: pointer;
+            margin-bottom: 10px;
+        }
+
+        .dice.rolling {
+            animation: roll 0.8s ease-in-out;
+        }
+
+        @keyframes roll {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(90deg); }
+            50% { transform: rotate(180deg); }
+            75% { transform: rotate(270deg); }
+        }
+
+        .game-board {
+            grid-area: board;
+            aspect-ratio: 1;
+            max-width: 500px;
+            margin: 0 auto;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            background: #f8f9fa;
+            display: grid;
+            grid-template-columns: repeat(15, 1fr);
+            grid-template-rows: repeat(15, 1fr);
+            gap: 1px;
+            padding: 5px;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.1);
+        }
+
+        .cell {
+            border: 1px solid #e0e0e0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            font-size: 8px;
+            border-radius: 2px;
+        }
+
+        .home-red { background-color: #ffcdd2; }
+        .home-blue { background-color: #bbdefb; }
+        .home-yellow { background-color: #fff9c4; }
+        .home-green { background-color: #c8e6c9; }
+
+        .path-red { background-color: #ffebee; }
+        .path-blue { background-color: #e3f2fd; }
+        .path-yellow { background-color: #fffde7; }
+        .path-green { background-color: #e8f5e9; }
+
+        .safe-zone { 
+            background-color: #f5f5f5 !important;
+            position: relative;
+        }
+
+        .safe-zone::after {
+            content: '★';
+            position: absolute;
+            top: 1px;
+            right: 1px;
+            font-size: 6px;
+            color: #f39c12;
+        }
+
+        .center { 
+            background-color: #2c3e50;
+            color: white;
+            font-size: 10px;
+        }
+
+        .piece {
+            width: 80%;
+            height: 80%;
+            border-radius: 50%;
+            border: 1px solid #333;
+            cursor: pointer;
+            position: absolute;
+            z-index: 10;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .piece:hover {
+            transform: translate(-50%, -50%) scale(1.2);
+            z-index: 20;
+        }
+
+        .piece.red { background-color: #e74c3c; }
+        .piece.blue { background-color: #3498db; }
+        .piece.yellow { background-color: #f1c40f; }
+        .piece.green { background-color: #2ecc71; }
+
+        .piece.movable {
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: translate(-50%, -50%) scale(1); }
+            50% { transform: translate(-50%, -50%) scale(1.1); }
+        }
+
+        .chat-section {
+            grid-area: chat;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .chat-box {
+            border: 1px solid #e0e0e0;
+            height: 120px;
+            overflow-y: auto;
+            padding: 10px;
+            border-radius: 8px;
+            background: white;
+        }
+
+        .message {
+            margin: 6px 0;
+            padding: 8px 12px;
+            border-radius: 15px;
+            max-width: 80%;
+            word-wrap: break-word;
+            font-size: 0.9rem;
+        }
+
+        .message.own {
+            background: #3498db;
+            color: white;
+            margin-left: auto;
+        }
+
+        .message.other {
+            background: #ecf0f1;
+            color: #333;
+        }
+
+        .message.system {
+            background: #2ecc71;
+            color: white;
+            text-align: center;
+            margin: 5px auto;
+            font-size: 0.8rem;
+            padding: 6px 10px;
+        }
+
+        .status {
+            text-align: center;
+            padding: 10px;
+            border-radius: 6px;
+            margin: 10px 0;
+            font-weight: 500;
+        }
+
+        .status.connected {
+            background-color: #d5f5e3;
+            color: #27ae60;
+        }
+
+        .status.disconnected {
+            background-color: #fadbd8;
+            color: #e74c3c;
+        }
+
+        .status.waiting {
+            background-color: #fdebd0;
+            color: #f39c12;
+        }
+
+        .winner-popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            z-index: 1000;
+            text-align: center;
+            display: none;
+            border: 2px solid #2ecc71;
+            max-width: 90%;
+        }
+
+        .winner-popup h2 {
+            color: #2ecc71;
+            margin-bottom: 15px;
+        }
+
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 999;
+            display: none;
+        }
+
+        /* Responsive Design */
+        @media (min-width: 768px) {
+            .container {
+                grid-template-areas: 
+                    "header header"
+                    "connection connection"
+                    "game-info board"
+                    "chat board";
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .game-info {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .game-board {
+                max-width: 100%;
+            }
+            
+            .input-group {
+                flex-direction: column;
+            }
+            
+            input, button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Multiplayer Ludo</h1>
+            <p>Play the classic board game online with friends</p>
+        </div>
+
+        <div class="connection-panel">
+            <h3>Game Connection</h3>
+            <div class="input-group">
+                <input type="text" id="roomCode" placeholder="Enter Room Code (6 digits)" maxlength="6">
+                <button onclick="joinRoom()">Join Room</button>
+                <button onclick="createRoom()">Create Room</button>
+            </div>
+            <div class="input-group">
+                <input type="text" id="playerName" placeholder="Your Name" maxlength="20">
+            </div>
+            <div id="connectionStatus" class="status disconnected">Not Connected</div>
+            <div id="roomInfo" style="display: none;">
+                <strong>Room Code: <span id="currentRoom"></span></strong>
+                <button onclick="copyRoomCode()" style="margin-left: 10px; padding: 6px 10px; font-size: 0.9rem;">Copy Code</button>
+            </div>
+        </div>
+
+        <div class="game-info">
+            <div class="player-info">
+                <div class="player red" id="player1">
+                    <h3>Player 1 (Red)</h3>
+                    <div>Pieces Home: <span id="p1-home">4</span></div>
+                    <div>Pieces Finished: <span id="p1-finished">0</span></div>
+                </div>
+                <div class="player blue" id="player2">
+                    <h3>Player 2 (Blue)</h3>
+                    <div>Pieces Home: <span id="p2-home">4</span></div>
+                    <div>Pieces Finished: <span id="p2-finished">0</span></div>
+                </div>
+            </div>
+
+            <div class="dice-container">
+                <div class="dice" id="dice" onclick="rollDice()">🎲</div>
+                <div>
+                    <div><strong>Current Player:</strong> <span id="currentPlayer">Player 1</span></div>
+                    <div><strong>Last Roll:</strong> <span id="lastRoll">-</span></div>
+                    <div><strong>Turn Status:</strong> <span id="turnStatus">Roll Dice</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="game-board" id="gameBoard"></div>
+
+        <div class="chat-section">
+            <div class="chat-box" id="chatBox"></div>
+            <div class="input-group">
+                <input type="text" id="chatInput" placeholder="Type a message..." onkeypress="handleChatKey(event)">
+                <button onclick="sendMessage()">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="overlay" id="overlay"></div>
+    <div class="winner-popup" id="winnerPopup">
+        <h2>Congratulations!</h2>
+        <p id="winnerMessage"></p>
+        <button onclick="resetGame()" style="margin-top: 15px;">Play Again</button>
+    </div>
+
+    <script>
+        // Game state
+        let gameState = {
+            board: [],
+            players: {
+                1: { pieces: [], color: 'red', name: 'Player 1', home: 4, finished: 0 },
+                2: { pieces: [], color: 'blue', name: 'Player 2', home: 4, finished: 0 }
+            },
+            currentPlayer: 1,
+            diceValue: 0,
+            canRoll: true,
+            gameStarted: false,
+            roomCode: null,
+            isHost: false,
+            connected: false,
+            playerId: null,
+            consecutiveSixes: 0
+        };
+
+        // Board layout definition
+        const BOARD_LAYOUT = {
+            homes: {
+                1: [1, 2, 16, 17],
+                2: [12, 13, 27, 28],
+                3: [196, 197, 211, 212],
+                4: [207, 208, 222, 223]
+            },
+            starts: {
+                1: 91,
+                2: 101,
+                3: 133,
+                4: 123
+            },
+            paths: {
+                1: [91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 116, 131, 146, 161, 176, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 186, 171, 156, 141, 126, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 108, 107, 106, 105, 104, 103, 102],
+                2: [101, 116, 131, 146, 161, 176, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 186, 171, 156, 141, 126, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 108, 93, 78, 63, 48, 33, 18, 17, 16, 15, 14, 13, 28, 43, 58, 73, 88, 103, 104, 105, 106, 107, 108]
+            },
+            safeZones: [91, 101, 116, 123, 133, 141, 156, 161, 176, 186, 191, 201],
+            center: 112
+        };
+
+        // Initialize game
+        function initGame() {
+            createBoard();
+            initializePieces();
+            updateDisplay();
+            addChatMessage('System', 'Welcome to Multiplayer Ludo! Create or join a room to start playing.');
+        }
+
+        function createBoard() {
+            const board = document.getElementById('gameBoard');
+            board.innerHTML = '';
+            
+            for (let i = 0; i < 225; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'cell';
+                cell.id = `cell-${i}`;
+                
+                const row = Math.floor(i / 15);
+                const col = i % 15;
+                
+                applyCellStyle(cell, i, row, col);
+                board.appendChild(cell);
+            }
+        }
+
+        function applyCellStyle(cell, index, row, col) {
+            if (row < 6 && col < 6) {
+                cell.classList.add('home-red');
+            } else if (row < 6 && col > 8) {
+                cell.classList.add('home-blue');
+            } else if (row > 8 && col < 6) {
+                cell.classList.add('home-green');
+            } else if (row > 8 && col > 8) {
+                cell.classList.add('home-yellow');
+            }
+            else if (row >= 6 && row <= 8 && col >= 6 && col <= 8) {
+                if (row === 7 && col === 7) {
+                    cell.classList.add('center');
+                } else {
+                    if (row === 6 && col === 7) cell.classList.add('path-red');
+                    else if (row === 8 && col === 7) cell.classList.add('path-yellow');
+                    else if (row === 7 && col === 6) cell.classList.add('path-green');
+                    else if (row === 7 && col === 8) cell.classList.add('path-blue');
+                }
+            }
+            else if (row === 6 || row === 8 || col === 6 || col === 8) {
+                if (row === 6) {
+                    if (col < 6) cell.classList.add('path-green');
+                    else if (col > 8) cell.classList.add('path-blue');
+                    else cell.classList.add('path-red');
+                } else if (row === 8) {
+                    if (col < 6) cell.classList.add('path-green');
+                    else if (col > 8) cell.classList.add('path-blue');
+                    else cell.classList.add('path-yellow');
+                } else if (col === 6) {
+                    if (row < 6) cell.classList.add('path-red');
+                    else if (row > 8) cell.classList.add('path-yellow');
+                    else cell.classList.add('path-green');
+                } else if (col === 8) {
+                    if (row < 6) cell.classList.add('path-red');
+                    else if (row > 8) cell.classList.add('path-yellow');
+                    else cell.classList.add('path-blue');
+                }
+                
+                if (BOARD_LAYOUT.safeZones.includes(index)) {
+                    cell.classList.add('safe-zone');
+                }
+            }
+        }
+
+        function initializePieces() {
+            const homePositions = BOARD_LAYOUT.homes;
+            
+            Object.keys(gameState.players).forEach(playerId => {
+                const positions = homePositions[playerId] || homePositions[1];
+                gameState.players[playerId].pieces = positions.map((pos, index) => ({
+                    id: `${playerId}-${index}`,
+                    position: pos,
+                    isHome: true,
+                    isFinished: false,
+                    pathIndex: -1
+                }));
+            });
+            
+            renderPieces();
+        }
+
+        function renderPieces() {
+            document.querySelectorAll('.piece').forEach(piece => piece.remove());
+            document.querySelectorAll('.piece').forEach(piece => piece.classList.remove('movable'));
+            
+            Object.keys(gameState.players).forEach(playerId => {
+                const player = gameState.players[playerId];
+                player.pieces.forEach(piece => {
+                    if (!piece.isFinished) {
+                        const pieceElement = document.createElement('div');
+                        pieceElement.className = `piece ${player.color}`;
+                        pieceElement.id = piece.id;
+                        pieceElement.onclick = () => movePiece(piece.id);
+                        
+                        if (canPieceMove(piece, playerId)) {
+                            pieceElement.classList.add('movable');
+                        }
+                        
+                        const cell = document.getElementById(`cell-${piece.position}`);
+                        if (cell) {
+                            cell.appendChild(pieceElement);
+                        }
+                    }
+                });
+            });
+        }
+
+        function canPieceMove(piece, playerId) {
+            if (!gameState.gameStarted || gameState.currentPlayer !== parseInt(playerId)) {
+                return false;
+            }
+            
+            if (piece.isFinished) return false;
+            
+            if (piece.isHome && gameState.diceValue === 6) return true;
+            
+            if (!piece.isHome && !piece.isFinished) {
+                const newPosition = calculateNewPosition(piece, gameState.diceValue, playerId);
+                return newPosition !== -1;
+            }
+            
+            return false;
+        }
+
+        function rollDice() {
+            if (!gameState.canRoll || !gameState.gameStarted || 
+                (gameState.connected && gameState.currentPlayer !== gameState.playerId)) {
+                return;
+            }
+            
+            const dice = document.getElementById('dice');
+            dice.classList.add('rolling');
+            gameState.canRoll = false;
+            
+            document.getElementById('turnStatus').textContent = 'Rolling...';
+            
+            setTimeout(() => {
+                const value = Math.floor(Math.random() * 6) + 1;
+                gameState.diceValue = value;
+                dice.textContent = value;
+                dice.classList.remove('rolling');
+                
+                document.getElementById('lastRoll').textContent = value;
+                document.getElementById('turnStatus').textContent = `Rolled: ${value}`;
+                
+                if (value === 6) {
+                    gameState.consecutiveSixes++;
+                    if (gameState.consecutiveSixes >= 3) {
+                        addChatMessage('System', `${gameState.players[gameState.currentPlayer].name} rolled 3 sixes in a row! Turn skipped.`);
+                        gameState.consecutiveSixes = 0;
+                        setTimeout(() => {
+                            nextPlayer();
+                        }, 1500);
+                        return;
+                    }
+                } else {
+                    gameState.consecutiveSixes = 0;
+                }
+                
+                const canMove = canPlayerMove(gameState.currentPlayer);
+                
+                if (!canMove) {
+                    addChatMessage('System', `${gameState.players[gameState.currentPlayer].name} cannot move any piece!`);
+                    document.getElementById('turnStatus').textContent = 'No moves available';
+                    setTimeout(() => {
+                        nextPlayer();
+                    }, 1500);
+                } else {
+                    document.getElementById('turnStatus').textContent = 'Choose a piece to move';
+                    renderPieces();
+                }
+                
+                if (gameState.connected) {
+                    sendGameState('dice', { value: value, player: gameState.currentPlayer });
+                }
+                
+            }, 800);
+        }
+
+        function canPlayerMove(playerId) {
+            const player = gameState.players[playerId];
+            return player.pieces.some(piece => canPieceMove(piece, playerId));
+        }
+
+        function movePiece(pieceId) {
+            if (gameState.canRoll || !gameState.gameStarted ||
+                (gameState.connected && gameState.currentPlayer !== gameState.playerId)) {
+                return;
+            }
+            
+            const [playerId, pieceIndex] = pieceId.split('-');
+            
+            if (parseInt(playerId) !== gameState.currentPlayer) {
+                return;
+            }
+            
+            const piece = gameState.players[playerId].pieces[pieceIndex];
+            
+            if (!canPieceMove(piece, playerId)) {
+                return;
+            }
+            
+            const pieceElement = document.getElementById(pieceId);
+            if (pieceElement) {
+                pieceElement.style.transform = 'translate(-50%, -50%) scale(1.2)';
+                setTimeout(() => {
+                    pieceElement.style.transform = 'translate(-50%, -50%) scale(1)';
+                }, 200);
+            }
+            
+            if (piece.isHome) {
+                const startPos = BOARD_LAYOUT.starts[playerId] || 91;
+                piece.position = startPos;
+                piece.isHome = false;
+                piece.pathIndex = 0;
+                gameState.players[playerId].home--;
+                
+                addChatMessage('System', `${gameState.players[playerId].name} entered the game!`);
+            } else {
+                const newPos = calculateNewPosition(piece, gameState.diceValue, playerId);
+                
+                if (newPos === -1) {
+                    return;
+                }
+                
+                const capturedPiece = checkCapture(newPos, playerId);
+                if (capturedPiece) {
+                    addChatMessage('System', `${gameState.players[playerId].name} captured ${capturedPiece}!`);
+                }
+                
+                piece.position = newPos;
+                piece.pathIndex += gameState.diceValue;
+                
+                if (isFinishPosition(newPos, playerId)) {
+                    piece.isFinished = true;
+                    gameState.players[playerId].finished++;
+                    addChatMessage('System', `${gameState.players[playerId].name} got a piece home!`);
+                }
+            }
+            
+            renderPieces();
+            updateDisplay();
+            
+            if (gameState.connected) {
+                sendGameState('move', { pieceId, playerId, gameState });
+            }
+            
+            if (gameState.players[playerId].finished === 4) {
+                showWinner(playerId);
+                return;
+            }
+            
+            if (gameState.diceValue === 6) {
+                gameState.canRoll = true;
+                document.getElementById('turnStatus').textContent = 'Roll again! (Got a 6)';
+                addChatMessage('System', `${gameState.players[playerId].name} gets another turn!`);
+            } else {
+                setTimeout(() => {
+                    nextPlayer();
+                }, 800);
+            }
+        }
+
+        function calculateNewPosition(piece, diceValue, playerId) {
+            const currentPos = piece.position;
+            let newPos = currentPos;
+            
+            if (piece.pathIndex >= 0) {
+                const maxPathLength = 57;
+                const newPathIndex = piece.pathIndex + diceValue;
+                
+                if (newPathIndex > maxPathLength) {
+                    return -1;
+                }
+                
+                newPos = currentPos + diceValue;
+                
+                if (newPos > 224) {
+                    newPos = newPos - 225;
+                }
+            }
+            
+            return newPos;
+        }
+
+        function checkCapture(position, attackingPlayer) {
+            let capturedPiece = null;
+            
+            if (BOARD_LAYOUT.safeZones.includes(position)) {
+                return null;
+            }
+            
+            Object.keys(gameState.players).forEach(playerId => {
+                if (playerId !== attackingPlayer.toString()) {
+                    gameState.players[playerId].pieces.forEach((piece, index) => {
+                        if (piece.position === position && !piece.isHome && !piece.isFinished) {
+                            const homePositions = BOARD_LAYOUT.homes[playerId] || [16, 17, 31, 32];
+                            
+                            const availableHome = homePositions.find(pos => 
+                                !gameState.players[playerId].pieces.some(p => p.position === pos)
+                            );
+                            
+                            if (availableHome) {
+                                piece.position = availableHome;
+                                piece.isHome = true;
+                                piece.pathIndex = -1;
+                                gameState.players[playerId].home++;
+                                capturedPiece = `${gameState.players[playerId].name}'s piece`;
+                            }
+                        }
+                    });
+                }
+            });
+            
+            return capturedPiece;
+        }
+
+        function isFinishPosition(position, playerId) {
+            return position === BOARD_LAYOUT.center || 
+                   (playerId == 1 && position === 112) ||
+                   (playerId == 2 && position === 112);
+        }
+
+        function nextPlayer() {
+            gameState.currentPlayer = gameState.currentPlayer === 1 ? 2 : 1;
+            gameState.canRoll = true;
+            gameState.consecutiveSixes = 0;
+            document.getElementById('turnStatus').textContent = 'Roll Dice';
+            updateDisplay();
+            
+            if (gameState.connected) {
+                sendGameState('turn', { currentPlayer: gameState.currentPlayer });
+            }
+        }
+
+        function updateDisplay() {
+            Object.keys(gameState.players).forEach(playerId => {
+                const player = gameState.players[playerId];
+                document.getElementById(`p${playerId}-home`).textContent = player.home;
+                document.getElementById(`p${playerId}-finished`).textContent = player.finished;
+                
+                const playerDiv = document.getElementById(`player${playerId}`);
+                if (gameState.currentPlayer === parseInt(playerId)) {
+                    playerDiv.classList.add('active');
+                } else {
+                    playerDiv.classList.remove('active');
+                }
+            });
+            
+            document.getElementById('currentPlayer').textContent = 
+                gameState.players[gameState.currentPlayer].name;
+        }
+
+        function showWinner(playerId) {
+            const winnerName = gameState.players[playerId].name;
+            document.getElementById('winnerMessage').textContent = 
+                `${winnerName} completed the journey first! Victory achieved!`;
+            document.getElementById('overlay').style.display = 'block';
+            document.getElementById('winnerPopup').style.display = 'block';
+            
+            addChatMessage('System', `Game Over! ${winnerName} is the champion!`);
+        }
+
+        function resetGame() {
+            gameState.currentPlayer = 1;
+            gameState.diceValue = 0;
+            gameState.canRoll = true;
+            gameState.gameStarted = true;
+            gameState.consecutiveSixes = 0;
+            
+            Object.keys(gameState.players).forEach(playerId => {
+                gameState.players[playerId].home = 4;
+                gameState.players[playerId].finished = 0;
+            });
+            
+            document.getElementById('overlay').style.display = 'none';
+            document.getElementById('winnerPopup').style.display = 'none';
+            
+            initializePieces();
+            updateDisplay();
+            document.getElementById('turnStatus').textContent = 'Roll Dice';
+            document.getElementById('lastRoll').textContent = '-';
+            
+            addChatMessage('System', 'New game started! Good luck!');
+            
+            if (gameState.connected) {
+                sendGameState('reset', {});
+            }
+        }
+
+        function createRoom() {
+            const playerName = document.getElementById('playerName').value.trim();
+            if (!playerName) {
+                alert('Please enter your name first!');
+                return;
+            }
+            
+            const roomCode = Math.floor(100000 + Math.random() * 900000).toString();
+            gameState.roomCode = roomCode;
+            gameState.isHost = true;
+            gameState.playerId = 1;
+            gameState.players[1].name = playerName;
+            
+            document.getElementById('currentRoom').textContent = roomCode;
+            document.getElementById('roomInfo').style.display = 'block';
+            
+            gameState.connected = true;
+            updateConnectionStatus('Waiting for opponent to join...', 'waiting');
+            
+            addChatMessage('System', `Room ${roomCode} created successfully!`);
+            addChatMessage('System', 'Share this code with your friend to start playing!');
+        }
+
+        function joinRoom() {
+            const roomCode = document.getElementById('roomCode').value.trim();
+            const playerName = document.getElementById('playerName').value.trim();
+            
+            if (!roomCode || !playerName) {
+                alert('Please enter both room code and your name!');
+                return;
+            }
+            
+            if (roomCode.length !== 6 || !/^\d+$/.test(roomCode)) {
+                alert('Room code must be exactly 6 digits!');
+                return;
+            }
+            
+            gameState.roomCode = roomCode;
+            gameState.isHost = false;
+            gameState.playerId = 2;
+            gameState.players[2].name = playerName;
+            
+            document.getElementById('currentRoom').textContent = roomCode;
+            document.getElementById('roomInfo').style.display = 'block';
+            
+            gameState.connected = true;
+            gameState.gameStarted = true;
+            updateConnectionStatus('Connected! Game ready to start.', 'connected');
+            
+            addChatMessage('System', `Successfully joined room ${roomCode}!`);
+            addChatMessage('System', `Welcome ${playerName}! The game is ready to begin.`);
+            updateDisplay();
+        }
+
+        function copyRoomCode() {
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(gameState.roomCode).then(() => {
+                    alert('Room code copied to clipboard!');
+                });
+            } else {
+                const textArea = document.createElement('textarea');
+                textArea.value = gameState.roomCode;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                alert('Room code copied!');
+            }
+        }
+
+        function updateConnectionStatus(message, status) {
+            const statusDiv = document.getElementById('connectionStatus');
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${status}`;
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            if (!gameState.connected) {
+                alert('Please connect to a room first!');
+                return;
+            }
+            
+            const playerName = gameState.players[gameState.playerId].name;
+            addChatMessage('You', message);
+            input.value = '';
+            
+            if (gameState.connected) {
+                sendGameState('chat', { message, sender: playerName });
+            }
+        }
+
+        function handleChatKey(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        function addChatMessage(sender, message) {
+            const chatBox = document.getElementById('chatBox');
+            const messageDiv = document.createElement('div');
+            
+            if (sender === 'System') {
+                messageDiv.className = 'message system';
+            } else {
+                messageDiv.className = `message ${sender === 'You' ? 'own' : 'other'}`;
+            }
+            
+            messageDiv.innerHTML = `<strong>${sender}:</strong> ${message}`;
+            
+            chatBox.appendChild(messageDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;
+            
+            if (chatBox.children.length > 50) {
+                chatBox.removeChild(chatBox.firstChild);
+            }
+        }
+
+        function sendGameState(type, data) {
+            console.log('Sending:', { type, data });
+        }
+
+        document.addEventListener('keydown', function(event) {
+            if (event.code === 'Space' && gameState.canRoll && gameState.gameStarted) {
+                event.preventDefault();
+                rollDice();
+            }
+        });
+
+        initGame();
+    </script>
+</body>
+</html>
