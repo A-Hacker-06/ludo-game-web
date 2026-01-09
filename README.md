@@ -103,7 +103,7 @@ MIT License - feel free to use this project for learning or personal projects.
 
 ## 👨‍💻 Developer
 
-Created with ❤️ during 2024-2025
+Created with ❤️ byt Taimur Tariq during 2024-2025
 
 ---
 
